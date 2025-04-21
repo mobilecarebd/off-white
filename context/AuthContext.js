@@ -1,11 +1,13 @@
 'use client'
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     checkAuth();
@@ -18,12 +20,13 @@ export function AuthProvider({ children }) {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-        }
+        },
+        cache: 'no-store'
       });
       
       if (res.ok) {
-        const { user } = await res.json();
-        setUser(user);
+        const data = await res.json();
+        setUser(data.user);
       } else {
         setUser(null);
       }
@@ -45,6 +48,7 @@ export function AuthProvider({ children }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ phone, password }),
+        cache: 'no-store'
       });
 
       const data = await res.json();
@@ -53,15 +57,9 @@ export function AuthProvider({ children }) {
         throw new Error(data.message || 'Login failed');
       }
 
-      if (data.user) {
-        setUser(data.user);
-        return { 
-          success: true,
-          isAdmin: data.user.isAdmin 
-        };
-      } else {
-        throw new Error('Invalid response format');
-      }
+      setUser(data.user);
+      await router.refresh();
+      return { success: true, isAdmin: data.user.isAdmin };
     } catch (error) {
       console.error('Login error:', error);
       return { 
@@ -79,7 +77,8 @@ export function AuthProvider({ children }) {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-        }
+        },
+        cache: 'no-store'
       });
       
       if (!res.ok) {
@@ -87,6 +86,8 @@ export function AuthProvider({ children }) {
       }
       
       setUser(null);
+      await router.refresh();
+      router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -102,6 +103,7 @@ export function AuthProvider({ children }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ name, phone, email: email || undefined, password }),
+        cache: 'no-store'
       });
 
       const data = await res.json();
@@ -111,6 +113,7 @@ export function AuthProvider({ children }) {
       }
 
       setUser(data.user);
+      await router.refresh();
       return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
