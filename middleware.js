@@ -9,9 +9,14 @@ export async function middleware(request) {
   }
 
   try {
+    // Get the cookie from the request
+    const cookie = request.cookies.get('token');
+    
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
       headers: {
-        Cookie: request.headers.get('cookie') || '',
+        'Cookie': `token=${cookie?.value || ''}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       },
       credentials: 'include',
     });

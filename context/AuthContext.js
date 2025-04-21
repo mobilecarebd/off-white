@@ -14,7 +14,11 @@ export function AuthProvider({ children }) {
   const checkAuth = async () => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
       });
       
       if (res.ok) {
@@ -37,6 +41,7 @@ export function AuthProvider({ children }) {
         method: 'POST',
         credentials: 'include',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ phone, password }),
@@ -50,7 +55,10 @@ export function AuthProvider({ children }) {
 
       if (data.user) {
         setUser(data.user);
-        return { success: true };
+        return { 
+          success: true,
+          isAdmin: data.user.isAdmin 
+        };
       } else {
         throw new Error('Invalid response format');
       }
@@ -65,10 +73,19 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
       });
+      
+      if (!res.ok) {
+        throw new Error('Logout failed');
+      }
+      
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
@@ -81,18 +98,19 @@ export function AuthProvider({ children }) {
         method: 'POST',
         credentials: 'include',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ name, phone, email: email || undefined, password }),
       });
 
+      const data = await res.json();
+      
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Registration failed');
+        throw new Error(data.message || 'Registration failed');
       }
 
-      const { user } = await res.json();
-      setUser(user);
+      setUser(data.user);
       return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
